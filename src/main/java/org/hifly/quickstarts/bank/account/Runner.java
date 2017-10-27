@@ -17,14 +17,12 @@ import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
 import org.hifly.quickstarts.bank.account.handler.AccountEventHandler;
 import org.hifly.quickstarts.bank.account.queryManager.QueryController;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 public class Runner {
 
@@ -55,15 +53,15 @@ public class Runner {
 
         ));
 
-        final String itemId = UUID.randomUUID().toString();
+        final String itemId = "A1";
         commandGateway.send(new CreateAccountCommand(itemId, "kermit the frog"));
-        final String itemId2 = UUID.randomUUID().toString();
+        final String itemId2 = "A2";
         commandGateway.send(new CreateAccountCommand(itemId2, "john the law"));
 
-        scheduleDeposit(commandGateway, itemId);
-        scheduleWithdrawal(commandGateway, itemId);
-        scheduleDeposit(commandGateway, itemId2);
-        scheduleWithdrawal(commandGateway, itemId2);
+        ExecutorService executorService1 = scheduleDeposit(commandGateway, itemId);
+        ExecutorService executorService2 = scheduleWithdrawal(commandGateway, itemId);
+        ExecutorService executorService3 = scheduleDeposit(commandGateway, itemId2);
+        ExecutorService executorService4 = scheduleWithdrawal(commandGateway, itemId2);
 
         for (Future<Integer> fut : futures) {
             try {
@@ -73,36 +71,50 @@ public class Runner {
             }
         }
 
+        executorService1.shutdown();
+        executorService2.shutdown();
+        executorService3.shutdown();
+        executorService4.shutdown();
+
         QueryController queryController = new QueryController();
         queryController.printAccountsDetail();
     }
 
-    public static void scheduleDeposit(CommandGateway commandGateway, String itemId) {
+    public static ExecutorService scheduleDeposit(CommandGateway commandGateway, String itemId) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
-        Random r = new Random();
+        Double upper = 10000.0;
+        Double lower = 1.0;
 
         for (int i = 0; i < 2; i++) {
             Future<Integer> future = executor.submit(() -> {
-                        commandGateway.send(new DepositAmountCommand(itemId, r.nextDouble()));
+                        commandGateway.send(
+                                new DepositAmountCommand(itemId,
+                                        Math.floor((Math.random() * (upper - lower) + lower) * 100)/100));
                         return 1;
                     }
             );
             futures.add(future);
         }
+        return executor;
     }
 
-    public static void scheduleWithdrawal(CommandGateway commandGateway, String itemId) {
+    public static ExecutorService scheduleWithdrawal(CommandGateway commandGateway, String itemId) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
-        Random r = new Random();
+        Double upper = 10000.0;
+        Double lower = 1.0;
+
 
         for (int i = 0; i < 2; i++) {
             Future<Integer> future = executor.submit(() -> {
-                        commandGateway.send(new WithdrawalAmountCommand(itemId, r.nextDouble()));
+                        commandGateway.send(
+                                new WithdrawalAmountCommand(itemId,
+                                        Math.floor((Math.random() * (upper - lower) + lower) * 100)/100));
                         return 1;
                     }
             );
             futures.add(future);
         }
+        return  executor;
     }
 
 

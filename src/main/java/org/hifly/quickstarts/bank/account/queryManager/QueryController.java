@@ -10,6 +10,6 @@ public class QueryController {
     private final Logger LOG = LoggerFactory.getLogger(QueryController.class);
 
     public void printAccountsDetail() {
-       accounts.forEach((k,v) -> LOG.info("Account {}, customer {}, balance {}", v.getId(), v.getCustomerName(), v.getBalance()));
+       accounts.forEach((k,v) -> LOG.info("Account {}, customer {}, balance {}", v.getId(), v.getCustomerName(), Math.floor(v.getBalance()*100)/100));
     }
 }
