@@ -1,6 +1,5 @@
 package org.hifly.quickstarts.bank.account.saga;
 
-import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.messaging.Message;
@@ -22,18 +21,11 @@ import static org.hifly.quickstarts.bank.account.queryManager.AccountInMemoryVie
 
 public class CloseAccountSaga {
 
-    private CommandGateway commandGateway;
     private EventBus eventBus;
 
     private final Logger LOG = LoggerFactory.getLogger(CloseAccountSaga.class);
 
-    public CloseAccountSaga() {
-
-    }
-
-    public CloseAccountSaga(CommandGateway commandGateway) {
-        this.commandGateway = commandGateway;
-    }
+    public CloseAccountSaga() { }
 
     public CloseAccountSaga(EventBus eventBus) {
         this.eventBus = eventBus;
@@ -59,7 +51,6 @@ public class CloseAccountSaga {
 
         }
         else {
-
             EventMessage<AccountClosedConfirmedEvent> message = asEventMessage(new AccountClosedConfirmedEvent(event.getAccountId(), event.getCustomerName()));
             UnitOfWork<Message<AccountClosedConfirmedEvent>> uow = DefaultUnitOfWork.startAndGet(message);
             try {
@@ -85,11 +76,6 @@ public class CloseAccountSaga {
         LOG.info("account can't be removed {}, customer {} ", event.getAccountId(), event.getCustomerName());
     }
 
-
-
-    public void setCommandGateway(CommandGateway commandGateway) {
-        this.commandGateway = commandGateway;
-    }
 
 
 }

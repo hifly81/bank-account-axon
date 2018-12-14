@@ -2,6 +2,10 @@
 
 Example of simple bank accounts commands/events using Axon Framework.
 
+Events are aggregated using the AccountAggregate class.
+
+An implementation of a saga pattern is realized using the CloaseAccountSaga class.
+
 ## Compile and execute test
 
 ```bash
