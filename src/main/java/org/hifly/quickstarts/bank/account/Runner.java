@@ -52,10 +52,12 @@ public class Runner {
         CommandGateway commandGateway = DefaultCommandGateway.builder()
                 .commandBus(commandBus)
                 .build();
-        //event accounts inmemory
+
+        //event store inmemory
         EventStore eventStore = EmbeddedEventStore.builder()
                 .storageEngine(new InMemoryEventStorageEngine())
                 .build();
+
         //account aggregate
         EventSourcingRepository<AccountAggregate> repository = EventSourcingRepository.builder(AccountAggregate.class)
                 .eventStore(eventStore)
@@ -67,7 +69,6 @@ public class Runner {
                         .build();
         aggregatorHandler.subscribe(commandBus);
 
-        //listen for events
         final AnnotationEventHandlerAdapter annotationEventListenerAdapter = new AnnotationEventHandlerAdapter(new AccountEventHandler());
         eventStore.subscribe(messages -> messages.forEach(e -> {
                     try {
@@ -80,6 +81,7 @@ public class Runner {
 
         ));
 
+        //TODO use the EventBus for saga and CommandGateway
         //support for saga
         AnnotatedSagaRepository<CloseAccountSaga> sagaRepository = AnnotatedSagaRepository.<CloseAccountSaga>builder()
                 .sagaStore(new InMemorySagaStore())
