@@ -1,6 +1,7 @@
 package org.hifly.quickstarts.bank.account.command;
 
-import org.axonframework.commandhandling.TargetAggregateIdentifier;
+
+import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 public class WithdrawalAmountCommand {
 
