@@ -17,7 +17,6 @@ import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
 import org.hifly.quickstarts.bank.account.handler.AccountEventHandler;
 import org.hifly.quickstarts.bank.account.queryManager.QueryController;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
