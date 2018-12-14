@@ -1,8 +1,8 @@
 package org.hifly.quickstarts.bank.account.aggregator;
 
 import org.axonframework.commandhandling.CommandHandler;
-import org.axonframework.commandhandling.model.AggregateIdentifier;
 import org.axonframework.eventhandling.EventHandler;
+import org.axonframework.modelling.command.AggregateIdentifier;
 import org.hifly.quickstarts.bank.account.command.CreateAccountCommand;
 import org.hifly.quickstarts.bank.account.command.DepositAmountCommand;
 import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
@@ -13,7 +13,7 @@ import org.hifly.quickstarts.bank.account.event.AmountWithdrawalEvent;
 import org.hifly.quickstarts.bank.account.model.Account;
 import org.hifly.quickstarts.bank.account.queryManager.AccountInMemoryView;
 
-import static org.axonframework.commandhandling.model.AggregateLifecycle.apply;
+import static org.axonframework.modelling.command.AggregateLifecycle.apply;
 
 public class AccountAggregate {
 

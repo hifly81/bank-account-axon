@@ -1,16 +1,13 @@
-package org.hifly.quickstarts.bank.account.command;
+package org.hifly.quickstarts.bank.account.event;
 
+public class AccountClosedDeniedEvent {
 
-import org.axonframework.modelling.command.TargetAggregateIdentifier;
-
-public class CreateAccountCommand {
-
-    @TargetAggregateIdentifier
     private String accountId;
 
     private String customerName;
 
-    public CreateAccountCommand(String accountId, String customerName) {
+
+    public AccountClosedDeniedEvent(String accountId, String customerName) {
         this.accountId = accountId;
         this.customerName = customerName;
     }
