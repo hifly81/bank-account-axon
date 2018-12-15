@@ -1,10 +1,7 @@
 package org.hifly.quickstarts.bank.account.handler;
 
 import org.axonframework.eventhandling.EventHandler;
-import org.hifly.quickstarts.bank.account.event.AccountCreatedEvent;
-import org.hifly.quickstarts.bank.account.event.AmountWithdrawalDeniedEvent;
-import org.hifly.quickstarts.bank.account.event.AmountDepositEvent;
-import org.hifly.quickstarts.bank.account.event.AmountWithdrawalEvent;
+import org.hifly.quickstarts.bank.account.event.*;
 import org.hifly.quickstarts.bank.account.model.Account;
 import org.hifly.quickstarts.bank.account.queryManager.AccountInMemoryView;
 import org.slf4j.Logger;
@@ -40,5 +37,11 @@ public class AccountEventHandler {
     public void handle(AmountWithdrawalDeniedEvent event) {
         LOG.info("account {}, withdrawal {} denied!!! - current balance {}", event.getAccountId(), event.getAmount(), event.getCurrentBalance());
     }
+
+    @EventHandler
+    public void handle(AccountNotExistingEvent event) {
+        LOG.info("account {} not existing", event.getAccountId());
+    }
+
 
 }

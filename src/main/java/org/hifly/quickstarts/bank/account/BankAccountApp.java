@@ -1,28 +1,23 @@
 package org.hifly.quickstarts.bank.account;
 
 import org.axonframework.commandhandling.CommandBus;
-import org.axonframework.commandhandling.SimpleCommandBus;
 import org.axonframework.commandhandling.gateway.CommandGateway;
-import org.axonframework.commandhandling.gateway.DefaultCommandGateway;
 import org.axonframework.eventhandling.AnnotationEventHandlerAdapter;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.eventhandling.EventMessage;
-import org.axonframework.eventhandling.SimpleEventBus;
 import org.axonframework.eventsourcing.EventSourcingRepository;
-import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
 import org.axonframework.eventsourcing.eventstore.EventStore;
-import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.unitofwork.DefaultUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.modelling.command.AggregateAnnotationCommandHandler;
 import org.axonframework.modelling.saga.AnnotatedSagaManager;
 import org.axonframework.modelling.saga.repository.AnnotatedSagaRepository;
-import org.axonframework.modelling.saga.repository.inmemory.InMemorySagaStore;
 import org.hifly.quickstarts.bank.account.aggregator.AccountAggregate;
 import org.hifly.quickstarts.bank.account.command.CreateAccountCommand;
 import org.hifly.quickstarts.bank.account.command.DepositAmountCommand;
 import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
+import org.hifly.quickstarts.bank.account.config.AxonConfig;
 import org.hifly.quickstarts.bank.account.event.AccountClosedEvent;
 import org.hifly.quickstarts.bank.account.handler.AccountEventHandler;
 import org.hifly.quickstarts.bank.account.queryManager.QueryController;
@@ -38,38 +33,27 @@ import java.util.function.Supplier;
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
 import static org.axonframework.eventhandling.Segment.ROOT_SEGMENT;
 
-public class Runner {
+public class BankAccountApp {
 
     private static List<Future<Integer>> futures = new ArrayList<>();
 
     public static void main(String[] args) {
 
-        //basic event bus
-        EventBus eventBus = SimpleEventBus.builder().build();
+        EventBus eventBus = AxonConfig.createEventBus();
 
-        //basic command bus
-        CommandBus commandBus = SimpleCommandBus.builder().build();
-        CommandGateway commandGateway = DefaultCommandGateway.builder()
-                .commandBus(commandBus)
-                .build();
+        CommandBus commandBus = AxonConfig.createCommandBus();
 
-        //event store inmemory
-        EventStore eventStore = EmbeddedEventStore.builder()
-                .storageEngine(new InMemoryEventStorageEngine())
-                .build();
+        CommandGateway commandGateway = AxonConfig.createCommandGateway(commandBus);
 
-        //account aggregate
-        EventSourcingRepository<AccountAggregate> repository = EventSourcingRepository.builder(AccountAggregate.class)
-                .eventStore(eventStore)
-                .build();
+        EventStore eventStore = AxonConfig.createEventStore();
+
+        EventSourcingRepository<AccountAggregate> repository = AxonConfig.createEventSourceRepository(eventStore, AccountAggregate.class);
+
         AggregateAnnotationCommandHandler<AccountAggregate> aggregatorHandler =
-                AggregateAnnotationCommandHandler.<AccountAggregate>builder()
-                        .aggregateType(AccountAggregate.class)
-                        .repository(repository)
-                        .build();
+                AxonConfig.createAggregatorHandler(repository, AccountAggregate.class);
         aggregatorHandler.subscribe(commandBus);
 
-        final AnnotationEventHandlerAdapter annotationEventListenerAdapter = new AnnotationEventHandlerAdapter(new AccountEventHandler());
+        final AnnotationEventHandlerAdapter annotationEventListenerAdapter = AxonConfig.createAnnotationEventHandler(new AccountEventHandler());
         eventStore.subscribe(messages -> messages.forEach(e -> {
                     try {
                         annotationEventListenerAdapter.handle(e);
@@ -81,21 +65,12 @@ public class Runner {
 
         ));
 
-        //TODO use the EventBus for saga and CommandGateway
-        //support for saga
-        AnnotatedSagaRepository<CloseAccountSaga> sagaRepository = AnnotatedSagaRepository.<CloseAccountSaga>builder()
-                .sagaStore(new InMemorySagaStore())
-                .sagaType(CloseAccountSaga.class)
-                .build();
+        AnnotatedSagaRepository<CloseAccountSaga> sagaRepository = AxonConfig.createAnnotatedSagaRepository(CloseAccountSaga.class);
 
         Supplier<CloseAccountSaga> accountSagaSupplier = () -> new CloseAccountSaga(eventBus);
 
         AnnotatedSagaManager<CloseAccountSaga> sagaManager =
-                AnnotatedSagaManager.<CloseAccountSaga>builder()
-                        .sagaRepository(sagaRepository)
-                        .sagaType(CloseAccountSaga.class)
-                        .sagaFactory(accountSagaSupplier)
-                        .build();
+                AxonConfig.createAnnotatedSagaManager(accountSagaSupplier, sagaRepository, CloseAccountSaga.class);
 
         eventBus.subscribe(messages -> messages.forEach(e -> {
                     try {
@@ -111,6 +86,12 @@ public class Runner {
         ));
 
 
+        sendCommands(eventBus, commandGateway);
+
+        executeQueries();
+    }
+
+    private static void sendCommands(EventBus eventBus, CommandGateway commandGateway) {
         final String itemId = "A1";
         commandGateway.send(new CreateAccountCommand(itemId, "kermit the frog"));
         final String itemId2 = "A2";
@@ -143,13 +124,14 @@ public class Runner {
         executorService2.shutdown();
         executorService3.shutdown();
         executorService4.shutdown();
+    }
 
+    private static void executeQueries() {
         QueryController queryController = new QueryController();
         queryController.printAccountsDetail();
     }
 
-
-    public static ExecutorService scheduleDeposit(CommandGateway commandGateway, String itemId) {
+    private static ExecutorService scheduleDeposit(CommandGateway commandGateway, String itemId) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
         Double upper = 10000.0;
         Double lower = 1.0;
@@ -167,7 +149,7 @@ public class Runner {
         return executor;
     }
 
-    public static ExecutorService scheduleWithdrawal(CommandGateway commandGateway, String itemId) {
+    private static ExecutorService scheduleWithdrawal(CommandGateway commandGateway, String itemId) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
         Double upper = 10000.0;
         Double lower = 1.0;

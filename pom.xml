@@ -24,7 +24,7 @@
                     <goals><goal>java</goal></goals>
                 </execution></executions>
                 <configuration>
-                    <mainClass>org.hifly.quickstarts.bank.account.Runner</mainClass>
+                    <mainClass>org.hifly.quickstarts.bank.account.BankAccountApp</mainClass>
                 </configuration>
             </plugin>
         </plugins>
