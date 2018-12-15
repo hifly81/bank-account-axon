@@ -7,6 +7,7 @@ import org.hifly.quickstarts.bank.account.command.CreateAccountCommand;
 import org.hifly.quickstarts.bank.account.command.DepositAmountCommand;
 import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
 import org.hifly.quickstarts.bank.account.event.AccountCreatedEvent;
+import org.hifly.quickstarts.bank.account.event.AccountNotExistingEvent;
 import org.hifly.quickstarts.bank.account.event.AmountDepositEvent;
 import org.hifly.quickstarts.bank.account.event.AmountWithdrawalEvent;
 import org.junit.Before;
@@ -46,7 +47,7 @@ public class AccountBalanceTest {
         String id = UUID.randomUUID().toString();
         fixture.given(new AccountCreatedEvent(id, "kermit the frog"))
                 .when(new WithdrawalAmountCommand(id, 1000.0))
-                .expectEvents(new AmountWithdrawalEvent(id, 1000.0));
+                .expectEvents(new AccountNotExistingEvent(id, null));
     }
 
 }

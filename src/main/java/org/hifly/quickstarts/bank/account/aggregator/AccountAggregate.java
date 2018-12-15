@@ -6,10 +6,7 @@ import org.axonframework.modelling.command.AggregateIdentifier;
 import org.hifly.quickstarts.bank.account.command.CreateAccountCommand;
 import org.hifly.quickstarts.bank.account.command.DepositAmountCommand;
 import org.hifly.quickstarts.bank.account.command.WithdrawalAmountCommand;
-import org.hifly.quickstarts.bank.account.event.AccountCreatedEvent;
-import org.hifly.quickstarts.bank.account.event.AmountWithdrawalDeniedEvent;
-import org.hifly.quickstarts.bank.account.event.AmountDepositEvent;
-import org.hifly.quickstarts.bank.account.event.AmountWithdrawalEvent;
+import org.hifly.quickstarts.bank.account.event.*;
 import org.hifly.quickstarts.bank.account.model.Account;
 import org.hifly.quickstarts.bank.account.queryManager.AccountInMemoryView;
 
@@ -41,6 +38,10 @@ public class AccountAggregate {
     @CommandHandler
     public void withdrawal(WithdrawalAmountCommand command) {
         Account account = AccountInMemoryView.accounts.get(command.getAccountId());
+        if(account == null) {
+            apply(new AccountNotExistingEvent(command.getAccountId(), null));
+            return;
+        }
         if(account.getBalance() < command.getAmount())
             apply(new AmountWithdrawalDeniedEvent(command.getAccountId(), command.getAmount(), account.getBalance()));
         else
