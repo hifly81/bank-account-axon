@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.axonframework.extensions.kafka.eventhandling.producer.ConfirmationMode.WAIT_FOR_ACK;
 
-public class KafkaConfig {
+public class AxonKafkaConfig {
 
     public static KafkaPublisher<String, byte[]> createPublisher(
             EventBus eventBus,
@@ -49,6 +49,9 @@ public class KafkaConfig {
                 .pollTimeout(300, TimeUnit.MILLISECONDS)
                 .build();
         KafkaMessageSource messageSource = new KafkaMessageSource(fetcher);
+
+
+
         return messageSource;
     }
 

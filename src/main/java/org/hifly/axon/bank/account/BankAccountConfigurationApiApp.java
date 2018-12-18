@@ -1,23 +1,19 @@
 package org.hifly.axon.bank.account;
 
-import org.axonframework.commandhandling.CommandBus;
-import org.axonframework.commandhandling.SimpleCommandBus;
 import org.axonframework.commandhandling.gateway.CommandGateway;
-import org.axonframework.commandhandling.gateway.DefaultCommandGateway;
+import org.axonframework.common.Registration;
 import org.axonframework.common.stream.BlockingStream;
-import org.axonframework.config.Configurer;
+import org.axonframework.config.Configuration;
 import org.axonframework.config.DefaultConfigurer;
+import org.axonframework.config.EventProcessingModule;
 import org.axonframework.eventhandling.*;
-import org.axonframework.eventsourcing.EventSourcingRepository;
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine;
 import org.axonframework.extensions.kafka.eventhandling.consumer.KafkaMessageSource;
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
-import org.axonframework.messaging.Message;
-import org.axonframework.messaging.unitofwork.DefaultUnitOfWork;
-import org.axonframework.messaging.unitofwork.UnitOfWork;
-import org.axonframework.modelling.command.AggregateAnnotationCommandHandler;
+import org.axonframework.messaging.MessageHandlerInterceptor;
+import org.axonframework.messaging.SubscribableMessageSource;
 import org.axonframework.modelling.saga.AnnotatedSagaManager;
 import org.axonframework.modelling.saga.repository.AnnotatedSagaRepository;
 import org.axonframework.modelling.saga.repository.inmemory.InMemorySagaStore;
@@ -43,101 +39,90 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static org.axonframework.eventhandling.GenericEventMessage.asEventMessage;
-import static org.axonframework.eventhandling.Segment.ROOT_SEGMENT;
 
-public class BankAccountApp {
+public class BankAccountConfigurationApiApp {
 
-    private static final Logger LOG = LoggerFactory.getLogger(BankAccountApp.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BankAccountConfigurationApiApp.class);
 
     private static List<Future<Integer>> futures = new ArrayList<>();
 
     public static void main(String[] args) {
 
-        //event bus and event store
-        EventBus eventBus = SimpleEventBus.builder().build();
         EventStore eventStore = EmbeddedEventStore.builder().storageEngine(new InMemoryEventStorageEngine()).build();
-        final AnnotationEventHandlerAdapter annotationEventListenerAdapter = AxonUtil.createAnnotationEventHandler(new AccountEventHandler());
-        eventStore.subscribe(messages -> messages.forEach(e -> {
-                    try {
-                        annotationEventListenerAdapter.handle(e);
-                    } catch (Exception e1) {
-                        throw new RuntimeException(e1);
-                    }
-                }
-        ));
-
-        //kafka
-        KafkaPublisher<String, byte[]> kafkaPublisher = AxonKafkaConfig.createPublisher(eventBus, "axon");
-        KafkaPublisher<String, byte[]> kafkaEventStorePublisher = AxonKafkaConfig.createPublisher(eventStore, "axon");
-
-        //aggregate commands
-        CommandBus commandBus = SimpleCommandBus.builder().build();
-        CommandGateway commandGateway = DefaultCommandGateway.builder().commandBus(commandBus).build();
-        EventSourcingRepository<AccountAggregate> repository = AxonUtil.createEventSourceRepository(eventStore, AccountAggregate.class);
-        AggregateAnnotationCommandHandler<AccountAggregate> aggregatorHandler = AxonUtil.createAggregatorHandler(repository, AccountAggregate.class);
-        aggregatorHandler.subscribe(commandBus);
-
-        //saga
         AnnotatedSagaRepository<CloseAccountSaga> sagaRepository = AxonUtil.createAnnotatedSagaRepository(CloseAccountSaga.class);
-        Supplier<CloseAccountSaga> accountSagaSupplier = () -> new CloseAccountSaga(eventBus);
+        Supplier<CloseAccountSaga> accountSagaSupplier = () -> new CloseAccountSaga(eventStore);
         AnnotatedSagaManager<CloseAccountSaga> sagaManager = AxonUtil.createAnnotatedSagaManager(accountSagaSupplier, sagaRepository, CloseAccountSaga.class);
-        eventBus.subscribe(messages -> messages.forEach(e -> {
-                    try {
-                        if (sagaManager.canHandle(e, null))
-                            sagaManager.handle(e, ROOT_SEGMENT);
-                    } catch (Exception e1) {
-                        throw new RuntimeException(e1);
-                    }
-                }
-        ));
 
+        KafkaMessageSource kafkaMessageSource = AxonKafkaConfig.createMessageSource("axon");
+        EventProcessingModule eventProcessingModule = new EventProcessingModule();
+        eventProcessingModule.registerSaga(CloseAccountSaga.class, sc -> sc.configureSagaStore(c -> new InMemorySagaStore())
+                .configureRepository(c -> sagaRepository)
+                .configureSagaManager(c -> sagaManager)
+                .configureSagaStore(c -> new InMemorySagaStore()))
+                .registerEventProcessor("close-account", (name, conf, eventHandlerInvoker) ->
+                        TrackingEventProcessor.builder()
+                                .name(name)
+                                .eventHandlerInvoker(eventHandlerInvoker)
+                                .messageSource(kafkaMessageSource).build())
+                .assignProcessingGroup(group -> "close-account");
+;
 
-        Configurer configurer = DefaultConfigurer.defaultConfiguration();
-        configurer
+        Configuration configuration = DefaultConfigurer.defaultConfiguration()
+                .configureEventStore(configuration1 -> eventStore)
+                .registerModule(eventProcessingModule)
+                .configureAggregate(AccountAggregate.class)
                 .eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer
-                        .registerEventHandler(configuration -> new AccountEventHandler()))
-                .eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer
-                        .registerSaga(CloseAccountSaga.class, sc -> sc.configureSagaStore(c -> new InMemorySagaStore())))
-                .registerCommandHandler(configuration -> aggregatorHandler)
-                .configureEventBus(configuration -> eventBus)
-                .configureCommandBus(configuration -> commandBus)
-                .configureEventStore(configuration -> eventStore)
+                        .registerEventHandler(cf -> new AccountEventHandler()))
+                .registerComponent(ListenerInvocationErrorHandler.class,
+                        c -> (e, eventMessage, eventMessageHandler) -> { })
                 .buildConfiguration();
 
+        configuration.start();
 
-        runSimulation(eventBus, commandGateway, kafkaPublisher, kafkaEventStorePublisher);
+        runSimulation(configuration);
 
 
     }
 
     private static void runSimulation(
-            EventBus eventBus,
-            CommandGateway commandGateway,
-            KafkaPublisher<String, byte[]> kafkaPublisher,
-            KafkaPublisher<String, byte[]> kafkaEventStorePublisher) {
+            Configuration configuration) {
 
         LOG.info("----->>>Starting simulation<<<-----");
 
-        kafkaEventStorePublisher.start();
-        kafkaPublisher.start();
-
-        sendCommands(commandGateway);
+        sendCommands(configuration);
+        //receiveExternalEvents(configuration.eventBus());
         queries();
-        receiveExternalEvents(eventBus);
 
 
     }
 
-    private static void sendCommands(CommandGateway commandGateway) {
-        final String itemId = "A1";
-        commandGateway.send(new CreateAccountCommand(itemId, "kermit the frog"));
-        final String itemId2 = "A2";
-        commandGateway.send(new CreateAccountCommand(itemId2, "john the law"));
+    private static void sendCommands(Configuration configuration) {
 
-        ExecutorService executorService1 = scheduleDeposit(commandGateway, itemId);
-        ExecutorService executorService2 = scheduleWithdrawal(commandGateway, itemId);
-        ExecutorService executorService3 = scheduleDeposit(commandGateway, itemId2);
-        ExecutorService executorService4 = scheduleWithdrawal(commandGateway, itemId2);
+        final String itemId = "A1";
+        configuration.commandGateway().send(new CreateAccountCommand(itemId, "kermit the frog"));
+        final String itemId2 = "A2";
+        configuration.commandGateway().send(new CreateAccountCommand(itemId2, "john the law"));
+
+        try {
+            ExecutorService executorService1 = scheduleDeposit(configuration.commandGateway(), itemId);
+            Thread.sleep(1000);
+            ExecutorService executorService2 = scheduleWithdrawal(configuration.commandGateway(), itemId);
+            Thread.sleep(1000);
+            ExecutorService executorService3 = scheduleDeposit(configuration.commandGateway(), itemId2);
+            Thread.sleep(1000);
+            ExecutorService executorService4 = scheduleWithdrawal(configuration.commandGateway(), itemId2);
+            Thread.sleep(1000);
+
+            configuration.eventBus().publish(asEventMessage(new AccountClosedEvent("A1", "kermit the frog")));
+
+            executorService1.shutdown();
+            executorService2.shutdown();
+            executorService3.shutdown();
+            executorService4.shutdown();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
 
 
         for (Future<Integer> fut : futures) {
@@ -148,10 +133,7 @@ public class BankAccountApp {
             }
         }
 
-        executorService1.shutdown();
-        executorService2.shutdown();
-        executorService3.shutdown();
-        executorService4.shutdown();
+
     }
 
     private static ExecutorService scheduleDeposit(CommandGateway commandGateway, String itemId) {
@@ -217,15 +199,9 @@ public class BankAccountApp {
                     TrackedEventMessage<?> actual = stream.nextAvailable();
                     if (actual.getPayload() instanceof AccountClosedEvent) {
                         AccountClosedEvent accountClosedEvent = (AccountClosedEvent) actual.getPayload();
-                        LOG.info("----->>>received AccountClosedEvent, account:" +  accountClosedEvent.getAccountId() + "<<<-----");
+                        LOG.info("----->>>received AccountClosedEvent, account:" + accountClosedEvent.getAccountId() + "<<<-----");
                         EventMessage<AccountClosedEvent> message = asEventMessage(accountClosedEvent);
-                        UnitOfWork<Message<AccountClosedEvent>> uow = DefaultUnitOfWork.startAndGet(message);
-                        try {
-                            eventBus.publish(message);
-                            uow.commit();
-                        } catch (Exception e) {
-                            uow.rollback(e);
-                        }
+                        eventBus.publish(message);
                     }
                 }
                 Thread.sleep(10000);
