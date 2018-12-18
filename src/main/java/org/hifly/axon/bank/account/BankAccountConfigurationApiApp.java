@@ -54,33 +54,22 @@ public class BankAccountConfigurationApiApp {
         AnnotatedSagaManager<CloseAccountSaga> sagaManager = AxonUtil.createAnnotatedSagaManager(accountSagaSupplier, sagaRepository, CloseAccountSaga.class);
 
         KafkaMessageSource kafkaMessageSource = AxonKafkaConfig.createMessageSource("axon");
-        EventProcessingModule eventProcessingModule = new EventProcessingModule();
-        eventProcessingModule.registerSaga(CloseAccountSaga.class, sc -> sc.configureSagaStore(c -> new InMemorySagaStore())
-                .configureRepository(c -> sagaRepository)
-                .configureSagaManager(c -> sagaManager)
-                .configureSagaStore(c -> new InMemorySagaStore()))
-                .registerEventProcessor("close-account", (name, conf, eventHandlerInvoker) ->
-                        TrackingEventProcessor.builder()
-                                .name(name)
-                                .eventHandlerInvoker(eventHandlerInvoker)
-                                .messageSource(kafkaMessageSource).build())
-                .assignProcessingGroup(group -> "close-account");
-;
 
         Configuration configuration = DefaultConfigurer.defaultConfiguration()
-                .configureEventStore(configuration1 -> eventStore)
-                .registerModule(eventProcessingModule)
+                .configureEmbeddedEventStore(c -> new InMemoryEventStorageEngine())
                 .configureAggregate(AccountAggregate.class)
-                .eventProcessing(eventProcessingConfigurer -> eventProcessingConfigurer
-                        .registerEventHandler(cf -> new AccountEventHandler()))
-                .registerComponent(ListenerInvocationErrorHandler.class,
-                        c -> (e, eventMessage, eventMessageHandler) -> { })
+                .eventProcessing(ep -> ep
+                        .registerEventHandler(cf -> new AccountEventHandler())
+                        .registerSaga(CloseAccountSaga.class,
+                                sc -> sc.configureSagaStore(c -> new InMemorySagaStore())
+                                        .configureRepository(c -> sagaRepository)
+                                        .configureSagaManager(c -> sagaManager))
+                        .byDefaultAssignTo("close-account")
+                        .registerTrackingEventProcessor("close-account", c -> kafkaMessageSource)
+                )
                 .buildConfiguration();
 
-        configuration.start();
-
         runSimulation(configuration);
-
 
     }
 
