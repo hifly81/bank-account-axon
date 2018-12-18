@@ -6,9 +6,8 @@ import org.axonframework.modelling.command.TargetAggregateIdentifier;
 public class CreateAccountCommand {
 
     @TargetAggregateIdentifier
-    private String accountId;
-
-    private String customerName;
+    protected String accountId;
+    protected String customerName;
 
     public CreateAccountCommand(String accountId, String customerName) {
         this.accountId = accountId;

@@ -18,38 +18,18 @@ import org.axonframework.modelling.saga.repository.inmemory.InMemorySagaStore;
 
 import java.util.function.Supplier;
 
-public class AxonConfig {
+public class AxonUtil {
 
-    public static EventBus createEventBus() {
-        EventBus eventBus = SimpleEventBus.builder().build();
-        return eventBus;
-    }
-
-    public static CommandBus createCommandBus() {
-        CommandBus commandBus = SimpleCommandBus.builder().build();
-        return commandBus;
-    }
-
-    public static CommandGateway createCommandGateway(CommandBus commandBus) {
-        CommandGateway commandGateway = DefaultCommandGateway.builder()
-                .commandBus(commandBus == null? createCommandBus(): commandBus)
-                .build();
-        return commandGateway;
-    }
-
-    public static EventStore createEventStore() {
-        //in memory
-        EventStore eventStore = EmbeddedEventStore.builder()
-                .storageEngine(new InMemoryEventStorageEngine())
-                .build();
-        return eventStore;
-    }
 
     public static <T> EventSourcingRepository<T> createEventSourceRepository(EventStore eventStore, Class<T> clazz) {
         EventSourcingRepository<T> repository = EventSourcingRepository.builder(clazz)
                 .eventStore(eventStore)
                 .build();
         return repository;
+    }
+
+    public static <T> AnnotationEventHandlerAdapter createAnnotationEventHandler(T t) {
+        return new AnnotationEventHandlerAdapter(t);
     }
 
     public static <T> AggregateAnnotationCommandHandler<T> createAggregatorHandler(EventSourcingRepository repository, Class<T> clazz) {
@@ -62,9 +42,6 @@ public class AxonConfig {
         return aggregatorHandler;
     }
 
-    public static <T> AnnotationEventHandlerAdapter createAnnotationEventHandler(T t) {
-        return new AnnotationEventHandlerAdapter(t);
-    }
 
     public static <T> AnnotatedSagaRepository<T> createAnnotatedSagaRepository(Class<T> clazz) {
         //in memory
@@ -87,6 +64,7 @@ public class AxonConfig {
                         .sagaFactory(sagaSupplier)
                         .build();
         return sagaManager;
+
     }
 
 

@@ -1,0 +1,15 @@
+axon:
+  serializer:
+    general: jackson
+  kafka:
+    clientid: myproducer
+    defaulttopic: bank
+    producer:
+      retries: 5
+      bootstrapservers:
+      - kafka:9092
+      transaction-id-prefix: clxtrx
+
+logging:
+  level:
+ROOT: INFO
