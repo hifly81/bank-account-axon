@@ -24,7 +24,6 @@
                     <goals><goal>java</goal></goals>
                 </execution></executions>
                 <configuration>
-                    <mainClass>org.hifly.axon.bank.account.BankAccountApp</mainClass>
                 </configuration>
             </plugin>
         </plugins>
