@@ -13,13 +13,13 @@ Simple bank accounts commands/events are sent using Axon Framework; the events p
 
 Events are aggregated using the AccountAggregate class.
 
-When a bank account is going to be cloased, this is managed usign a saga; an implementation of a saga pattern is realized using the CloseAccountSaga class.
+When a bank account is going to be closed, this is managed using a saga; an implementation of a saga pattern is realized using the CloseAccountSaga class.
 
-The close account event is sent by a simuòlated external service.
+The close account event is sent by a simulated external service.
 
 ## Prerequisites
 
-Make sue you have an Apache Kafka broker running on localhost:9092 and a topic called "axon-test"
+Make sure you have an Apache Kafka broker running on localhost:9092 and a topic called "axon-test"
 
 ## Compile and execute test
 
