@@ -23,22 +23,22 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
-public class CustomKafkaMessageConverter implements KafkaMessageConverter<String, byte[]> {
+public class AgnosticKafkaMessageConverter implements KafkaMessageConverter<String, byte[]> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaMessageConverter.class);
     private final Serializer serializer;
     private final SequencingPolicy<? super EventMessage<?>> sequencingPolicy;
     private final BiFunction<String, Object, RecordHeader> headerValueMapper;
 
-    protected CustomKafkaMessageConverter(CustomKafkaMessageConverter.Builder builder) {
+    protected AgnosticKafkaMessageConverter(AgnosticKafkaMessageConverter.Builder builder) {
         builder.validate();
         this.serializer = builder.serializer;
         this.sequencingPolicy = builder.sequencingPolicy;
         this.headerValueMapper = builder.headerValueMapper;
     }
 
-    public static CustomKafkaMessageConverter.Builder builder() {
-        return new CustomKafkaMessageConverter.Builder();
+    public static AgnosticKafkaMessageConverter.Builder builder() {
+        return new AgnosticKafkaMessageConverter.Builder();
     }
 
     public ProducerRecord<String, byte[]> createKafkaMessage(EventMessage<?> eventMessage, String topic) {
@@ -117,26 +117,26 @@ public class CustomKafkaMessageConverter implements KafkaMessageConverter<String
         public Builder() {
         }
 
-        public CustomKafkaMessageConverter.Builder serializer(Serializer serializer) {
+        public AgnosticKafkaMessageConverter.Builder serializer(Serializer serializer) {
             BuilderUtils.assertNonNull(serializer, "Serializer may not be null");
             this.serializer = serializer;
             return this;
         }
 
-        public CustomKafkaMessageConverter.Builder sequencingPolicy(SequencingPolicy<? super EventMessage<?>> sequencingPolicy) {
+        public AgnosticKafkaMessageConverter.Builder sequencingPolicy(SequencingPolicy<? super EventMessage<?>> sequencingPolicy) {
             BuilderUtils.assertNonNull(sequencingPolicy, "SequencingPolicy may not be null");
             this.sequencingPolicy = sequencingPolicy;
             return this;
         }
 
-        public CustomKafkaMessageConverter.Builder headerValueMapper(BiFunction<String, Object, RecordHeader> headerValueMapper) {
+        public AgnosticKafkaMessageConverter.Builder headerValueMapper(BiFunction<String, Object, RecordHeader> headerValueMapper) {
             BuilderUtils.assertNonNull(headerValueMapper, "{} may not be null");
             this.headerValueMapper = headerValueMapper;
             return this;
         }
 
-        public CustomKafkaMessageConverter build() {
-            return new CustomKafkaMessageConverter(this);
+        public AgnosticKafkaMessageConverter build() {
+            return new AgnosticKafkaMessageConverter(this);
         }
 
         protected void validate() throws AxonConfigurationException {

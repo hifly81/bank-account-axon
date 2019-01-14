@@ -1,4 +1,4 @@
-package org.hifly.axon.bank.account.config;
+package org.hifly.axon.bank.account.kafka.axon;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -13,7 +13,6 @@ import org.axonframework.extensions.kafka.eventhandling.producer.DefaultProducer
 import org.axonframework.extensions.kafka.eventhandling.producer.KafkaPublisher;
 import org.axonframework.extensions.kafka.eventhandling.producer.ProducerFactory;
 import org.axonframework.serialization.xml.XStreamSerializer;
-import org.hifly.axon.bank.account.kafka.axon.CustomKafkaMessageConverter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +45,7 @@ public class AxonKafkaConfig {
         ConsumerFactory<String, byte[]> consumerFactory =
                 new DefaultConsumerFactory<>(kafkaConfigConsumer( "consumer1", ByteArrayDeserializer.class));
 
-        KafkaMessageConverter messageConverter = CustomKafkaMessageConverter.builder().serializer(XStreamSerializer.builder().build()).build();
+        KafkaMessageConverter messageConverter = AgnosticKafkaMessageConverter.builder().serializer(XStreamSerializer.builder().build()).build();
 
 
         Fetcher fetcher = AsyncFetcher.<String, byte[]>builder()
