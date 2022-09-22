@@ -22,5 +22,6 @@ public class CloseAccountApp {
             lastRecord = baseProducer.produceSync(producerRecord);
         }
         RecordMetadataUtil.prettyPrinter(lastRecord);
+        
     }
 }

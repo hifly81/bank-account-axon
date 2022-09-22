@@ -25,14 +25,23 @@ Make sure you have an Apache Kafka broker running on localhost:9092 and a topic 
 
 ```bash
   mvn clean install
-
 ```
 
 ## Run a sample deposit/withdrawal simulation
 
 ```bash
   mvn clean install && mvn exec:java -Dexec.mainClass="org.hifly.axon.bank.account.BankAccountApp"
+```
 
+```bash
+2022-09-22 15:22:11 INFO  AccountEventHandler - account created A1, customer kermit the frog
+2022-09-22 15:22:11 INFO  AccountEventHandler - account created A2, customer john the law
+2022-09-22 15:22:16 INFO  AccountEventHandler - account A1, deposit 4320.46
+2022-09-22 15:22:16 INFO  AccountEventHandler - account A2, deposit 976.57
+2022-09-22 15:22:21 INFO  AccountEventHandler - account A1, withdrawal 9816.56 denied!!! - current balance 4320.46
+2022-09-22 15:22:21 INFO  AccountEventHandler - account A2, withdrawal 1370.19 denied!!! - current balance 976.57
+2022-09-22 15:22:23 INFO  QueryController - Account A1, customer kermit the frog, balance 4320.46
+2022-09-22 15:22:23 INFO  QueryController - Account A2, customer john the law, balance 976.57
 ```
 
 ## Run a close account simulation
