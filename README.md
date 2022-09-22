@@ -46,7 +46,14 @@ Make sure you have an Apache Kafka broker running on localhost:9092 and a topic 
 
 ## Run a close account simulation
 
+Open a new terminal session (don't stop the simulation main program) and run:
 ```bash
   mvn clean install && mvn exec:java -Dexec.mainClass="org.hifly.axon.bank.account.CloseAccountApp"
+```
 
+This will log in simulation main program:
+
+```bash
+2022-09-22 15:40:07 INFO  CloseAccountSaga - Received closed account event...
+2022-09-22 15:40:07 INFO  CloseAccountSaga - account removed A1, customer kermit the frog 
 ```
